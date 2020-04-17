@@ -1,6 +1,36 @@
-#include "pick_place_example/pick_place_bridge.h"
+#include "pick_place/pick_place.h"
 #include <tf/transform_listener.h>
-PickPlaceBridge::PickPlaceBridge(ros::NodeHandle _n, moveit::planning_interface::MoveGroupInterface& group)
+
+#include <ros/ros.h>
+#include <std_msgs/Int32MultiArray.h>
+ 
+#include <moveit/planning_scene_interface/planning_scene_interface.h>
+#include <moveit/move_group_interface/move_group_interface.h>
+
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <geometry_msgs/Pose.h>
+
+#include <pluginlib/class_loader.h>
+#include <std_msgs/Bool.h>
+
+#include <vector>
+
+#include "hirop_msgs/Pick.h"
+#include "hirop_msgs/Place.h"
+#include "hirop_msgs/RemoveObject.h"
+#include "hirop_msgs/ShowObject.h"
+#include "hirop_msgs/listActuator.h"
+#include "hirop_msgs/listGenerator.h"
+#include "hirop_msgs/SetGenActuator.h"
+#include "hirop_msgs/ObjectArray.h"
+#include "hirop_msgs/detection.h"
+#include "hirop_msgs/openGripper.h"
+#include "hirop_msgs/closeGripper.h"
+#include <iostream>
+
+
+
+PickPlace::PickPlace(ros::NodeHandle _n, moveit::planning_interface::MoveGroupInterface& group)
 :nh{_n},
 move_group{group}
 {
@@ -13,14 +43,17 @@ move_group{group}
     // gripper
     pick_pose_pub = nh.advertise<geometry_msgs::Pose>("pick_pose", 1);
     place_pose_pub = nh.advertise<geometry_msgs::Pose>("place_pose", 1);
+    // service
+    open_gripper_client = nh.serviceClient<hirop_msgs::openGripper>("openGripper");
+    close_gripper_client = nh.serviceClient<hirop_msgs::closeGripper>("closeGripper");
     // 发布姿态
-    pose_sub = nh.subscribe("/object_array", 1, &PickPlaceBridge::objectCallback, this);
-    action_sub = nh.subscribe("/action_data", 1, &PickPlaceBridge::actionDataCallback, this);
+    pose_sub = nh.subscribe("/object_array", 1, &PickPlace::objectCallback, this);
+    action_sub = nh.subscribe("/action_data", 1, &PickPlace::actionDataCallback, this);
 
     detection_client = nh.serviceClient<hirop_msgs::detection>("detection");
 
     // 
-    detetor_sub = nh.subscribe("pedestrian_detection", 1, &PickPlaceBridge::subCallback, this);
+    detetor_sub = nh.subscribe("pedestrian_detection", 1, &PickPlace::subCallback, this);
 
     move_group.setMaxAccelerationScalingFactor(0.1);
     move_group.setMaxVelocityScalingFactor(0.8);
@@ -55,7 +88,7 @@ move_group{group}
     ROS_INFO("init_over");
 }
 
-void PickPlaceBridge::openGripper(trajectory_msgs::JointTrajectory& posture)
+void PickPlace::openGripper(trajectory_msgs::JointTrajectory& posture)
 {
     posture.joint_names.resize(2);
     posture.joint_names[0] = "left_finger_1_joint";
@@ -67,7 +100,7 @@ void PickPlaceBridge::openGripper(trajectory_msgs::JointTrajectory& posture)
     posture.points[0].time_from_start = ros::Duration(0.5);
 }
 
-void PickPlaceBridge::closedGripper(trajectory_msgs::JointTrajectory& posture)
+void PickPlace::closedGripper(trajectory_msgs::JointTrajectory& posture)
 {
     posture.joint_names.resize(2);
     posture.joint_names[0] = "left_finger_1_joint";
@@ -79,7 +112,7 @@ void PickPlaceBridge::closedGripper(trajectory_msgs::JointTrajectory& posture)
     posture.points[0].time_from_start = ros::Duration(0.5);
 }
 
-moveit_msgs::MoveItErrorCodes PickPlaceBridge::pick(geometry_msgs::Pose pose)
+moveit_msgs::MoveItErrorCodes PickPlace::planMove(geometry_msgs::Pose& pose)
 {
     geometry_msgs::PoseStamped poseStamep;
     poseStamep.pose = pose;
@@ -87,107 +120,56 @@ moveit_msgs::MoveItErrorCodes PickPlaceBridge::pick(geometry_msgs::Pose pose)
     move_group.setPoseTarget(poseStamep);
     for(int i=0; i<5; ++i)
     {
-        
         bool succeed = (move_group.plan(my_plan) == moveit_msgs::MoveItErrorCodes::SUCCESS);
         if(succeed)
         {
             ROS_INFO_STREAM("planed succeed");
-            
-            // move_group.setNamedTarget("home");
-            // move_group.move();
+            move_group.move();
             break;
         }
         else
         {
             ROS_INFO_STREAM("planed faild");
         }
- 
     }
-    // std::vector<moveit_msgs::Grasp> grasps;
-    // grasps.resize(1);
-    // // 抓取姿态
-    // grasps[0].grasp_pose.header.frame_id = "base_link";
-    // grasps[0].grasp_pose.pose.position.x = pose.position.x;
-    // grasps[0].grasp_pose.pose.position.y = pose.position.y;
-    // grasps[0].grasp_pose.pose.position.z = pose.position.z;
-    // grasps[0].grasp_pose.pose.orientation.x = pose.orientation.x;
-    // grasps[0].grasp_pose.pose.orientation.y = pose.orientation.y;
-    // grasps[0].grasp_pose.pose.orientation.z = pose.orientation.z;
-    // grasps[0].grasp_pose.pose.orientation.w = pose.orientation.w;
-    // // 发送pick的位置信息
-    // pick_pose_pub.publish(grasps[0].grasp_pose.pose);
-    // if(intent == 0)
-    // {
-    //     grasps[0].pre_grasp_approach.direction.vector.x = 1;
-    //     grasps[0].post_grasp_retreat.direction.vector.x = -1;
-    // }
-    // else if(intent == 1)
-    // {
-    //     grasps[0].pre_grasp_approach.direction.vector.y = -1;
-    //     grasps[0].post_grasp_retreat.direction.vector.y = 1;
-    // }
-    // // 抓取方向
-    // grasps[0].pre_grasp_approach.direction.header.frame_id = "base_link";
-    // grasps[0].pre_grasp_approach.min_distance = 0.01;
-    // grasps[0].pre_grasp_approach.desired_distance = 0.05;
-    // // 撤退方向
-    // grasps[0].post_grasp_retreat.direction.header.frame_id = "base_link";
-    // grasps[0].post_grasp_retreat.min_distance = 0.01;
-    // grasps[0].post_grasp_retreat.desired_distance = 0.05;
-    // // 模拟关闭夹爪
-    // openGripper(grasps[0].pre_grasp_posture);
-    // closedGripper(grasps[0].grasp_posture);
-    // 动作
-
-    // return move_group.pick("object", grasps, true);
-    return move_group.move();
 }
 
-moveit_msgs::MoveItErrorCodes PickPlaceBridge::place(geometry_msgs::Pose pose)
+moveit_msgs::MoveItErrorCodes PickPlace::pick(geometry_msgs::Pose pose)
 {
-
-    std::vector<moveit_msgs::PlaceLocation> place_location;
-    place_location.resize(1);
-    // 抓取位置
-    place_location[0].place_pose.header.frame_id = "base_link";
-    place_location[0].place_pose.pose.position.x = pose.position.x;
-    place_location[0].place_pose.pose.position.y = pose.position.y;
-    place_location[0].place_pose.pose.position.z = pose.position.z;
-    place_location[0].place_pose.pose.orientation.x = pose.orientation.x;
-    place_location[0].place_pose.pose.orientation.y = pose.orientation.y;
-    place_location[0].place_pose.pose.orientation.z = pose.orientation.z;
-    place_location[0].place_pose.pose.orientation.w = pose.orientation.w;
-    // 发送放置的位置信息
-    place_pose_pub.publish(place_location[0].place_pose.pose);
-    // 放置方向
-    
-    // 不同的
-    if(intent == 0)
-    {
-        place_location[0].pre_place_approach.direction.vector.y = -1; 
-        place_location[0].post_place_retreat.direction.vector.y = 1;
-    }
-    else if(intent == 1)
-    {
-        place_location[0].pre_place_approach.direction.vector.x = 1; 
-        place_location[0].post_place_retreat.direction.vector.z = 1;
-    }  
-    place_location[0].pre_place_approach.direction.header.frame_id = "base_link";
-    place_location[0].pre_place_approach.min_distance = 0.01;
-    place_location[0].pre_place_approach.desired_distance = 0.05;
-    // 撤退方向
-    place_location[0].post_place_retreat.direction.header.frame_id = "base_link";
-    place_location[0].post_place_retreat.min_distance = 0.01;
-    place_location[0].post_place_retreat.desired_distance = 0.05;
-    // 模拟打开夹爪
-    openGripper(place_location[0].post_place_posture);
-    // 抓取动作
-
-    return move_group.place("object", place_location, true);
-
+    geometry_msgs::Pose p1;
+    p1 = pose;
+    p1.position.y *= 0.8;
+    // 临近点
+    planMove(p1);
+    // 
+    hirop_msgs::openGripper open_srv;
+    this->open_gripper_client.call(open_srv);
+    CartesianPath(pose);
+    this->close_gripper_client.call(open_srv);
+    // move_group.attachObject("object");
+    CartesianPath(p1);
 }
 
-bool PickPlaceBridge::setGenActuator()
+moveit_msgs::MoveItErrorCodes PickPlace::place(geometry_msgs::Pose pose)
+{
+    // 临近点
+    geometry_msgs::Pose target_finish = pose;
+    hirop_msgs::openGripper open_srv;
+    target_finish.position.x *= 0.85;
+    target_finish.position.y *= 0.85;
+    target_finish.position.z *= 1;
+    target_finish.orientation.x = 0;
+    target_finish.orientation.y = 0.254;
+    target_finish.orientation.z = 0;
+    target_finish.orientation.w = 0.967;
+    CartesianPath(target_finish);
+    // 抵达
+    CartesianPath(pose);
+    this->open_gripper_client.call(open_srv);
+    CartesianPath(target_finish);
+}
+
+bool PickPlace::setGenActuator()
 {
     hirop_msgs::listGenerator list_generator_srv;
     hirop_msgs::listActuator list_actuator_srv;
@@ -202,7 +184,7 @@ bool PickPlaceBridge::setGenActuator()
     return false;
 }
 
-void PickPlaceBridge::showObject(geometry_msgs::Pose pose)
+void PickPlace::showObject(geometry_msgs::Pose pose)
 {
     hirop_msgs::ShowObject srv;
     srv.request.objPose.header.frame_id = "base_link";
@@ -223,7 +205,7 @@ void PickPlaceBridge::showObject(geometry_msgs::Pose pose)
     }
 }
 
-void PickPlaceBridge::rmObject()
+void PickPlace::rmObject()
 {
     hirop_msgs::RemoveObject srv;
     if(remove_object_client.call(srv))
@@ -236,7 +218,7 @@ void PickPlaceBridge::rmObject()
     }
 }
 
-void PickPlaceBridge::actionDataCallback(const std_msgs::Int32MultiArray::ConstPtr &msg)
+void PickPlace::actionDataCallback(const std_msgs::Int32MultiArray::ConstPtr &msg)
 {
     intent = msg->data[0];
     object = msg->data[1];
@@ -252,7 +234,7 @@ void PickPlaceBridge::actionDataCallback(const std_msgs::Int32MultiArray::ConstP
     }
 }
 
-void PickPlaceBridge::CartesianPath(geometry_msgs::Pose pose)
+moveit_msgs::MoveItErrorCodes PickPlace::CartesianPath(geometry_msgs::Pose pose)
 {
     // 直线去抓取object
     // 从现在位置
@@ -279,32 +261,71 @@ void PickPlaceBridge::CartesianPath(geometry_msgs::Pose pose)
     moveit_msgs::RobotTrajectory trajectory;
     double jump_threshold = 0.0;
     double eef_step = 0.02;
-
     double fraction = 0;
     int cnt = 0;
-    
+    moveit_msgs::MoveItErrorCodes errorCode;
+
     while (fraction < 1.0 && cnt < 100)
     {
         fraction = move_group.computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory);
         cnt ++;
     }
-    ROS_INFO_STREAM( "waypoints "<<waypoints.size()<<" "<<fraction);
-    move_group.plan(my_plan);
-    move_group.move();
+    if(fraction != 1.0)
+    {
+        planMove(pose);
+    }
+    else
+    {
+        ROS_INFO_STREAM( "waypoints "<<waypoints.size()<<" "<<fraction);
+        move_group.plan(my_plan);
+        move_group.move();
+    }
 }
 
-geometry_msgs::PoseStamped tfTransformListener(geometry_msgs::PoseStamped& pose)
+geometry_msgs::PoseStamped PickPlace::TransformListener(geometry_msgs::PoseStamped pose)
 {
-    int ii = msg->objects.size();
-    geometry_msgs::PoseStamped * detectPoseFromCamera = new geometry_msgs::PoseStamped[ii];
-    geometry_msgs::PoseStamped * base_detectPoseFromCamera = new geometry_msgs::PoseStamped[ii];
+    // int ii = msg->objects.size();
+    geometry_msgs::PoseStamped returnPose;
+    geometry_msgs::PoseStamped * detectPoseFromCamera = new geometry_msgs::PoseStamped[1];
+    geometry_msgs::PoseStamped * base_detectPoseFromCamera = new geometry_msgs::PoseStamped[1];
     tf::TransformListener listener;
-    detectPoseFromCamera[j].header.seq = 1;
-    detectPoseFromCamera[j].header.frame_id = pose.header.frame_id;
-    detectPoseFromCamera[j].pose = pose.pose;
+    detectPoseFromCamera[0].header.seq = 1;
+    detectPoseFromCamera[0].header.frame_id = pose.header.frame_id;
+    detectPoseFromCamera[0].pose = pose.pose;
+    for(int cout = 0; cout < 5; cout++)
+    {
+        try
+        {
+            listener.transformPose("base_link",detectPoseFromCamera[0], base_detectPoseFromCamera[0]);
+        break;
+        }
+        catch(tf::TransformException &ex)
+        {
+        ROS_ERROR("%s",ex.what());
+        ros::Duration(0.5).sleep();
+        continue;
+        }
+    }
+    base_detectPoseFromCamera[0].pose.position.z = 0.70;
+    base_detectPoseFromCamera[0].pose.orientation.x = 0;
+    base_detectPoseFromCamera[0].pose.orientation.y = 0;
+    base_detectPoseFromCamera[0].pose.orientation.z = -0.706825;
+    base_detectPoseFromCamera[0].pose.orientation.w = 0.707388;
+
+    std::cout << base_detectPoseFromCamera[0].pose.position.x <<" " \
+        << base_detectPoseFromCamera[0].pose.position.y <<" "\
+        << base_detectPoseFromCamera[0].pose.position.z <<" "\
+        << base_detectPoseFromCamera[0].pose.orientation.x <<" "\
+        << base_detectPoseFromCamera[0].pose.orientation.y <<" "\
+        << base_detectPoseFromCamera[0].pose.orientation.z <<" "\
+        << base_detectPoseFromCamera[0].pose.orientation.w << std::endl;
+    returnPose = base_detectPoseFromCamera[0];
+    delete[] detectPoseFromCamera;
+    delete[] base_detectPoseFromCamera;
+    return returnPose;
 }
 
-void PickPlaceBridge::objectCallback(const hirop_msgs::ObjectArray::ConstPtr& msg)
+void PickPlace::objectCallback(const hirop_msgs::ObjectArray::ConstPtr& msg)
 {
     move_group.allowReplanning(true);
     geometry_msgs::Pose pose;
@@ -316,67 +337,17 @@ void PickPlaceBridge::objectCallback(const hirop_msgs::ObjectArray::ConstPtr& ms
     static int errorCnt = 0;
     cnt++;
     nh.setParam("/cnt", cnt);
-    int ii = msg->objects.size();
-    geometry_msgs::PoseStamped * detectPoseFromCamera = new geometry_msgs::PoseStamped[ii];
-    geometry_msgs::PoseStamped * base_detectPoseFromCamera = new geometry_msgs::PoseStamped[ii];
+
 
     for(int j = 0; j < i; ++j)
     {   
-
-		tf::TransformListener listener;
-		detectPoseFromCamera[j].header.seq = 1;
-		detectPoseFromCamera[j].header.frame_id = msg->objects[j].pose.header.frame_id;
-
-		detectPoseFromCamera[j].pose = msg->objects[j].pose.pose;
-
-		for(int cout = 0; cout < 5; cout++)
-		{
-			try
-			{
-			 listener.transformPose("base_link",detectPoseFromCamera[j], base_detectPoseFromCamera[j]);
-			break;
-			}
-			catch(tf::TransformException &ex)
-			{
-			ROS_ERROR("%s",ex.what());
-			ros::Duration(0.5).sleep();
-			continue;
-			}
-
-		}
-
-
-		//base_detectPoseFromCamera[j].pose.position.x = 0.418;
-		//base_detectPoseFromCamera[j].pose.position.y = -0.65;
-		base_detectPoseFromCamera[j].pose.position.z = 0.70;
-		base_detectPoseFromCamera[j].pose.orientation.x = 0;
-		base_detectPoseFromCamera[j].pose.orientation.y = 0;
-		base_detectPoseFromCamera[j].pose.orientation.z = -0.706825;
-		base_detectPoseFromCamera[j].pose.orientation.w = 0.707388;
-
-		std::cout << base_detectPoseFromCamera[j].pose.position.x <<" " \
-			<< base_detectPoseFromCamera[j].pose.position.y <<" "\
-			<< base_detectPoseFromCamera[j].pose.position.z <<" "\
-			<< base_detectPoseFromCamera[j].pose.orientation.x <<" "\
-			<< base_detectPoseFromCamera[j].pose.orientation.y <<" "\
-			<< base_detectPoseFromCamera[j].pose.orientation.z <<" "\
-			<< base_detectPoseFromCamera[j].pose.orientation.w << std::endl;
-
-
-        geometry_msgs::PoseStamped among_pose;
-        among_pose.header.frame_id = "base_link";
-        among_pose.pose = base_detectPoseFromCamera[j].pose;
-        among_pose.pose.position.y *= 0.5;
-        move_group.setPoseTarget(among_pose);
-        bool succeed = (move_group.plan(my_plan) == moveit_msgs::MoveItErrorCodes::SUCCESS);
-        if(succeed)
-            move_group.move();
+        geometry_msgs::PoseStamped toPickPoseStamp;
+        toPickPoseStamp = TransformListener(msg->objects[j].pose);
 
         ROS_INFO("Press 'enter' to continue");
         std::cin.ignore();
         moveit_msgs::MoveItErrorCodes code;
-        //pose = msg->objects[0].pose.pose;
-        pose = base_detectPoseFromCamera[j].pose;
+        pose = toPickPoseStamp.pose;
         rmObject();
         showObject(pose);
         if(intent == 0)
@@ -406,13 +377,10 @@ void PickPlaceBridge::objectCallback(const hirop_msgs::ObjectArray::ConstPtr& ms
         move_group.move();
         nh.setParam("over", true);
     }
-
-    delete[] detectPoseFromCamera;
-    delete[] base_detectPoseFromCamera;
 }
 
 
-void PickPlaceBridge::subCallback(const std_msgs::Bool::ConstPtr& msg)
+void PickPlace::subCallback(const std_msgs::Bool::ConstPtr& msg)
 {
     static bool flag = false;
 	if(flag != msg->data)

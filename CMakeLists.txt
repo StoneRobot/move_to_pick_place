@@ -2,12 +2,12 @@ cmake_minimum_required(VERSION 2.8.3)
 project(move_to_pick_place)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS moveit_core roscpp std_msgs moveit_msgs moveit_core moveit_ros_planning moveit_ros_planning_interface pluginlib geometric_shapes rosbag tf2_ros tf2_eigen tf2_geometry_msgs)
+find_package(catkin REQUIRED COMPONENTS moveit_core roscpp std_msgs moveit_msgs moveit_core moveit_ros_planning moveit_ros_planning_interface pluginlib geometric_shapes rosbag tf2_ros tf2_eigen tf2_geometry_msgs hirop_msgs)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -204,8 +204,9 @@ include_directories(
 
 
 add_executable(move_to_pick_place
-  src/pick_place.cpp
   src/main.cpp
+  src/pick_place.cpp
+  include/pick_place/pick_place.h
 )
 add_dependencies(move_to_pick_place ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(move_to_pick_place

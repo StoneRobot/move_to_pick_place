@@ -1,4 +1,6 @@
 #pragma once
+#include <tf/transform_listener.h>
+
 #include <ros/ros.h>
 #include <std_msgs/Int32MultiArray.h>
  
@@ -22,15 +24,14 @@
 #include "hirop_msgs/SetGenActuator.h"
 #include "hirop_msgs/ObjectArray.h"
 #include "hirop_msgs/detection.h"
+#include "hirop_msgs/openGripper.h"
+#include "hirop_msgs/closeGripper.h"
 #include <iostream>
 
-class PickPlaceBridge
+class PickPlace
 {
 public:
-    PickPlaceBridge(ros::NodeHandle _n, moveit::planning_interface::MoveGroupInterface& group);
-
-
-
+    PickPlace(ros::NodeHandle _n, moveit::planning_interface::MoveGroupInterface& group);
 private:
     void openGripper(trajectory_msgs::JointTrajectory& posture);
     void closedGripper(trajectory_msgs::JointTrajectory& posture);
@@ -41,9 +42,11 @@ private:
     void showObject(geometry_msgs::Pose pose);
     void objectCallback(const hirop_msgs::ObjectArray::ConstPtr& msg);
     void actionDataCallback(const std_msgs::Int32MultiArray::ConstPtr &msg);
-    void CartesianPath(geometry_msgs::Pose pose);
+    moveit_msgs::MoveItErrorCodes CartesianPath(geometry_msgs::Pose pose);
     // 行人检测
     void subCallback(const std_msgs::Bool::ConstPtr &msg);
+    geometry_msgs::PoseStamped TransformListener(geometry_msgs::PoseStamped pose);
+    moveit_msgs::MoveItErrorCodes planMove(geometry_msgs::Pose& pose);
 
     ros::NodeHandle& nh;
     moveit::planning_interface::MoveGroupInterface& move_group;
@@ -54,6 +57,8 @@ private:
     ros::ServiceClient show_object_client;
     ros::ServiceClient remove_object_client;
     ros::ServiceClient detection_client;
+    ros::ServiceClient open_gripper_client;
+    ros::ServiceClient close_gripper_client;
     ros::Publisher pick_pose_pub;
     ros::Publisher place_pose_pub;
     ros::Subscriber pose_sub;
@@ -67,7 +72,4 @@ private:
     geometry_msgs::Pose place_pose2;
     geometry_msgs::Pose place_pose3;
     std::vector<geometry_msgs::Pose> place_poses;
-
-    
-
 };
