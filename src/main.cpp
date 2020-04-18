@@ -8,8 +8,8 @@ int main(int argc, char *argv[])
     spinner.start();
     std::string PLANNING_GROUP;
     nh.getParam("/pick_place/group", PLANNING_GROUP);
-    moveit::planning_interface::MoveGroupInterface move_group(PLANNING_GROUP);
-    PickPlace p(nh, move_group);
+    moveit::planning_interface::MoveGroupInterface move_group("arm");
+    MovePickPlace p(nh, move_group);
     ros::waitForShutdown();
     return 0;
 }

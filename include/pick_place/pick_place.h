@@ -1,19 +1,16 @@
 #pragma once
 #include <tf/transform_listener.h>
-
 #include <ros/ros.h>
 #include <std_msgs/Int32MultiArray.h>
- 
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <moveit/move_group_interface/move_group_interface.h>
-
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <geometry_msgs/Pose.h>
-
 #include <pluginlib/class_loader.h>
 #include <std_msgs/Bool.h>
 
 #include <vector>
+#include <iostream>
 
 #include "hirop_msgs/Pick.h"
 #include "hirop_msgs/Place.h"
@@ -26,23 +23,20 @@
 #include "hirop_msgs/detection.h"
 #include "hirop_msgs/openGripper.h"
 #include "hirop_msgs/closeGripper.h"
-#include <iostream>
 
-class PickPlace
+class MovePickPlace
 {
 public:
-    PickPlace(ros::NodeHandle _n, moveit::planning_interface::MoveGroupInterface& group);
+    MovePickPlace(ros::NodeHandle _n, moveit::planning_interface::MoveGroupInterface& group);
+    
 private:
-    void openGripper(trajectory_msgs::JointTrajectory& posture);
-    void closedGripper(trajectory_msgs::JointTrajectory& posture);
     moveit_msgs::MoveItErrorCodes pick(geometry_msgs::Pose pose);
     moveit_msgs::MoveItErrorCodes place(geometry_msgs::Pose pose);
     bool setGenActuator();
     void rmObject();
     void showObject(geometry_msgs::Pose pose);
     void objectCallback(const hirop_msgs::ObjectArray::ConstPtr& msg);
-    void actionDataCallback(const std_msgs::Int32MultiArray::ConstPtr &msg);
-    moveit_msgs::MoveItErrorCodes CartesianPath(geometry_msgs::Pose pose);
+    moveit_msgs::MoveItErrorCodes CartesianPath(geometry_msgs::Pose pose, bool second_plan);
     // 行人检测
     void subCallback(const std_msgs::Bool::ConstPtr &msg);
     geometry_msgs::PoseStamped TransformListener(geometry_msgs::PoseStamped pose);
@@ -56,13 +50,13 @@ private:
     ros::ServiceClient list_actuator_client;
     ros::ServiceClient show_object_client;
     ros::ServiceClient remove_object_client;
-    ros::ServiceClient detection_client;
     ros::ServiceClient open_gripper_client;
     ros::ServiceClient close_gripper_client;
     ros::Publisher pick_pose_pub;
     ros::Publisher place_pose_pub;
+    // 抓取姿态
     ros::Subscriber pose_sub;
-    ros::Subscriber action_sub;
+    
     // 行人检测
     ros::Subscriber detetor_sub;
     int intent;

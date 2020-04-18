@@ -19,7 +19,6 @@
                 "/home/st/catkin_ws/src/hirop_ros/hsc3api_bridge/include/**",
                 "/home/st/catkin_ws/src/hsr_irp/hsr_rosi_device/include/**",
                 "/home/st/catkin_ws/src/move_to_pick_place/include/**",
-                "/home/st/moveit_arm_ws/src/pick_place_door/include/**",
                 "/home/st/catkin_ws/src/pick_place_example/include/**",
                 "/home/st/catkin_ws/src/hirop_ros/pickplace_bridge/include/**",
                 "/home/st/voice_controller_ws/src/robot_voice/include/**",

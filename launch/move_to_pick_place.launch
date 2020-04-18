@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<launch>
+    <!--"0"从桌子到货架,"1"从货架到桌子-->
+    <param name="intent" type="int" value="1" />
+    <!--测试使用的3个点位, 货架顶层,货架底层,桌子-->
+    <param name="target" type="int" value="2" />
+    <!--测试使用开关,及计数器-->
+    <param name="over" type="bool" value="false" />
+    <param name="cnt" type="int" value="0" />
+    <param name="error_cnt" type="int" value="0" />
+    <!--测试减速标志位-->
+    <param name="velocity" type="bool" value="false" />
+    <param name="is_use_detection" type="bool" value="true" />
+    
+    <node pkg="move_to_pick_place" type="move_to_pick_place" name="move_to_pick_place" output="screen">
+        <param name="group" type="str" value="arm" />
+    </node>
+</launch>

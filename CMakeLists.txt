@@ -7,7 +7,23 @@ add_compile_options(-std=c++11)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS moveit_core roscpp std_msgs moveit_msgs moveit_core moveit_ros_planning moveit_ros_planning_interface pluginlib geometric_shapes rosbag tf2_ros tf2_eigen tf2_geometry_msgs hirop_msgs)
+find_package(catkin REQUIRED COMPONENTS 
+rospy 
+roscpp 
+std_msgs 
+hirop_msgs 
+interactive_markers 
+moveit_msgs 
+moveit_core 
+moveit_ros_planning 
+moveit_ros_planning_interface 
+pluginlib 
+geometric_shapes 
+rosbag 
+tf2_ros 
+tf2_eigen 
+tf2_geometry_msgs
+)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -113,7 +129,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
   include ${catkin_INCLUDE_DIRS}
-# include
+  include 
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -204,9 +220,9 @@ include_directories(
 
 
 add_executable(move_to_pick_place
+  include/pick_place/pick_place.h
   src/main.cpp
   src/pick_place.cpp
-  include/pick_place/pick_place.h
 )
 add_dependencies(move_to_pick_place ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(move_to_pick_place

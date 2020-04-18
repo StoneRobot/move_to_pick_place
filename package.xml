@@ -7,7 +7,7 @@
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
   <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
-  <maintainer email="maizitian@todo.todo">maizitian</maintainer>  <!-- One license tag required, multiple allowed, one license per tag -->
+  <maintainer email="st@todo.todo">st</maintainer>  <!-- One license tag required, multiple allowed, one license per tag -->
   <!-- Commonly used license strings: -->
   <!--   BSD, MIT, Boost Software License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
   <license>TODO</license>  <!-- Url tags are optional, but multiple are allowed, one per tag -->
@@ -80,4 +80,10 @@
 <build_depend>hirop_msgs</build_depend>
 <build_export_depend>hirop_msgs</build_export_depend>
 <exec_depend>hirop_msgs</exec_depend>
+<build_depend>rospy</build_depend>
+<build_depend>interactive_markers</build_depend>
+<build_export_depend>rospy</build_export_depend>
+<build_export_depend>interactive_markers</build_export_depend>
+<exec_depend>rospy</exec_depend>
+<exec_depend>interactive_markers</exec_depend>
 </package>
