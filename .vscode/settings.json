@@ -4,5 +4,8 @@
         "/home/st/voice_controller_ws/devel/lib/python2.7/dist-packages",
         "/home/st/turtlebot3_ws/devel/lib/python2.7/dist-packages",
         "/opt/ros/kinetic/lib/python2.7/dist-packages"
-    ]
+    ],
+    "files.associations": {
+        "*.tcc": "cpp"
+    }
 }

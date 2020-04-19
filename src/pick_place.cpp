@@ -22,7 +22,7 @@ move_group{group}
     detetor_sub = nh.subscribe("pedestrian_detection", 1, &MovePickPlace::subCallback, this);
 
     move_group.setMaxAccelerationScalingFactor(0.1);
-    move_group.setMaxVelocityScalingFactor(0.5);
+    move_group.setMaxVelocityScalingFactor(0.1);
     move_group.setGoalPositionTolerance(0.005);
     move_group.setGoalOrientationTolerance(0.01);
 
@@ -68,6 +68,8 @@ moveit_msgs::MoveItErrorCodes MovePickPlace::planMove(geometry_msgs::Pose& pose)
         if(code.val == moveit_msgs::MoveItErrorCodes::SUCCESS)
         {
             ROS_INFO("to move");
+            // ROS_INFO_STREAM(my_plan.traject_);
+            // std::cin.ignore();
             code = move_group.move();
             break;
         }
@@ -114,10 +116,12 @@ moveit_msgs::MoveItErrorCodes MovePickPlace::place(geometry_msgs::Pose pose)
     target_finish.orientation.z = 0;
     target_finish.orientation.w = 0.967;
     
-    code = CartesianPath(target_finish, true);
+    // code = CartesianPath(target_finish, true);
+    code = planMove(target_finish);
     if(code.val = moveit_msgs::MoveItErrorCodes::SUCCESS)
     {
-        code = CartesianPath(pose, true);
+        // code = CartesianPath(pose, true);
+        code = planMove(pose);
         if(code.val == moveit_msgs::MoveItErrorCodes::SUCCESS)
         {
             ROS_INFO("place succeed");
@@ -300,9 +304,9 @@ void MovePickPlace::objectCallback(const hirop_msgs::ObjectArray::ConstPtr& msg)
         code = pick(pose);
         if(code.val == moveit_msgs::MoveItErrorCodes::SUCCESS)
         {
-            // ros::WallDuration(1.0).sleep();
-            // move_group.setNamedTarget("home");
-            // move_group.move();
+            ros::WallDuration(1.0).sleep();
+            move_group.setNamedTarget("home");
+            move_group.move();
             code = place(place_poses[target]);
             if(code.val != moveit_msgs::MoveItErrorCodes::SUCCESS)
             {
