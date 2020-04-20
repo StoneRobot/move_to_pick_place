@@ -22,7 +22,7 @@ move_group{group}
     detetor_sub = nh.subscribe("pedestrian_detection", 1, &MovePickPlace::subCallback, this);
 
     move_group.setMaxAccelerationScalingFactor(0.1);
-    move_group.setMaxVelocityScalingFactor(0.1);
+    move_group.setMaxVelocityScalingFactor(0.8);
     move_group.setGoalPositionTolerance(0.005);
     move_group.setGoalOrientationTolerance(0.01);
 
@@ -97,7 +97,8 @@ moveit_msgs::MoveItErrorCodes MovePickPlace::pick(geometry_msgs::Pose pose)
             ROS_INFO("pick succeed");
             move_group.attachObject("object");
             this->close_gripper_client.call(open_srv);
-            CartesianPath(p1, false);
+            // CartesianPath(p1, false);
+            planMove(p1);
         }
     }    
     return code;
@@ -108,26 +109,26 @@ moveit_msgs::MoveItErrorCodes MovePickPlace::place(geometry_msgs::Pose pose)
     geometry_msgs::Pose target_finish = pose;
     hirop_msgs::openGripper open_srv;
     moveit_msgs::MoveItErrorCodes code;
-    target_finish.position.x *= 0.85;
-    target_finish.position.y *= 0.85;
+    target_finish.position.x *= 0.95;
+    // target_finish.position.y *= 0.85;
     target_finish.position.z *= 1;
-    target_finish.orientation.x = 0;
-    target_finish.orientation.y = 0.254;
-    target_finish.orientation.z = 0;
-    target_finish.orientation.w = 0.967;
+    // target_finish.orientation.x = 0;
+    // target_finish.orientation.y = 0.254;
+    // target_finish.orientation.z = 0;
+    // target_finish.orientation.w = 0.967;
+    target_finish.orientation.w = 1.0;
     
     // code = CartesianPath(target_finish, true);
     code = planMove(target_finish);
     if(code.val = moveit_msgs::MoveItErrorCodes::SUCCESS)
     {
-        // code = CartesianPath(pose, true);
         code = planMove(pose);
         if(code.val == moveit_msgs::MoveItErrorCodes::SUCCESS)
         {
             ROS_INFO("place succeed");
             move_group.detachObject("object");
             this->open_gripper_client.call(open_srv);
-            CartesianPath(target_finish, true);
+            planMove(target_finish);
         }
     }
     return code;
@@ -200,7 +201,7 @@ moveit_msgs::MoveItErrorCodes MovePickPlace::CartesianPath(geometry_msgs::Pose p
     // 导致冗余接头的大量不可预知运动，并且可能是一个安全问题
     moveit_msgs::RobotTrajectory trajectory;
     double jump_threshold = 0.0;
-    double eef_step = 0.02;
+    double eef_step = 0.03;
     double fraction = 0;
     int cnt = 0;
     moveit_msgs::MoveItErrorCodes code;
@@ -209,16 +210,15 @@ moveit_msgs::MoveItErrorCodes MovePickPlace::CartesianPath(geometry_msgs::Pose p
         fraction = move_group.computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory);
         cnt ++;
     }
-    if(fraction != 1.0 && second_plan == true)
+    if(fraction < 0.7 && second_plan == true)
     {
         code = planMove(pose);
     }
     else
     {
         ROS_INFO_STREAM( "waypoints "<<waypoints.size()<<" "<<fraction);
-        code = move_group.plan(my_plan);
-        if(code.val == moveit_msgs::MoveItErrorCodes::SUCCESS)
-            code = move_group.move();
+        my_plan.trajectory_ = trajectory;
+        code = move_group.execute(my_plan);
     }
     return code;
 }
@@ -247,7 +247,8 @@ geometry_msgs::PoseStamped MovePickPlace::TransformListener(geometry_msgs::PoseS
             continue;
         }
     }
-    base_detectPoseFromCamera[0].pose.position.z = 0.68;
+    // base_detectPoseFromCamera[0].pose.position.x += 0.02;
+    base_detectPoseFromCamera[0].pose.position.z = 0.65;
     base_detectPoseFromCamera[0].pose.orientation.x = 0;
     base_detectPoseFromCamera[0].pose.orientation.y = 0;
     base_detectPoseFromCamera[0].pose.orientation.z = -0.706825;
@@ -269,6 +270,7 @@ geometry_msgs::PoseStamped MovePickPlace::TransformListener(geometry_msgs::PoseS
 void MovePickPlace::objectCallback(const hirop_msgs::ObjectArray::ConstPtr& msg)
 {
     move_group.allowReplanning(true);
+    move_group.setPlanningTime(1);
     geometry_msgs::Pose pose;
     nh.getParam("intent", intent);
     nh.getParam("target", target);
@@ -281,14 +283,14 @@ void MovePickPlace::objectCallback(const hirop_msgs::ObjectArray::ConstPtr& msg)
     for(int j = 0; j < i; ++j)
     {   
         geometry_msgs::PoseStamped toPickPoseStamp;
-        toPickPoseStamp = TransformListener(msg->objects[j].pose);
-
-        ROS_INFO("Press 'enter' to continue");
-        std::cin.ignore();
         moveit_msgs::MoveItErrorCodes code;
+        toPickPoseStamp = TransformListener(msg->objects[j].pose);
         pose = toPickPoseStamp.pose;
         rmObject();
         showObject(pose);
+
+        ROS_INFO("Press 'enter' to continue");
+        std::cin.ignore();
         if(intent == 0)
         {
             ROS_INFO_STREAM("intent:" << intent);
@@ -304,9 +306,9 @@ void MovePickPlace::objectCallback(const hirop_msgs::ObjectArray::ConstPtr& msg)
         code = pick(pose);
         if(code.val == moveit_msgs::MoveItErrorCodes::SUCCESS)
         {
-            ros::WallDuration(1.0).sleep();
-            move_group.setNamedTarget("home");
-            move_group.move();
+            // ros::WallDuration(1.0).sleep();
+            // move_group.setNamedTarget("home");
+            // move_group.move();
             code = place(place_poses[target]);
             if(code.val != moveit_msgs::MoveItErrorCodes::SUCCESS)
             {
@@ -334,7 +336,7 @@ void MovePickPlace::subCallback(const std_msgs::Bool::ConstPtr& msg)
 		if(msg->data)
 		{
 			ROS_INFO("slow down ...");
-			move_group.setMaxVelocityScalingFactor(0.2);
+			move_group.setMaxVelocityScalingFactor(0.1);
 		}
 		else
 		{
