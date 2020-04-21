@@ -21,8 +21,8 @@ move_group{group}
     // 
     detetor_sub = nh.subscribe("pedestrian_detection", 1, &MovePickPlace::subCallback, this);
 
-    move_group.setMaxAccelerationScalingFactor(0.1);
-    move_group.setMaxVelocityScalingFactor(0.8);
+    move_group.setMaxAccelerationScalingFactor(0.2);
+    move_group.setMaxVelocityScalingFactor(0.95);
     move_group.setGoalPositionTolerance(0.005);
     move_group.setGoalOrientationTolerance(0.01);
 
@@ -67,9 +67,6 @@ moveit_msgs::MoveItErrorCodes MovePickPlace::planMove(geometry_msgs::Pose& pose)
         ROS_INFO("plan %d", i);
         if(code.val == moveit_msgs::MoveItErrorCodes::SUCCESS)
         {
-            ROS_INFO("to move");
-            // ROS_INFO_STREAM(my_plan.traject_);
-            // std::cin.ignore();
             code = move_group.move();
             break;
         }
@@ -83,6 +80,7 @@ moveit_msgs::MoveItErrorCodes MovePickPlace::pick(geometry_msgs::Pose pose)
     p1 = pose;
     p1.position.y *= 0.8;
     hirop_msgs::openGripper open_srv;
+    hirop_msgs::closeGripper close_srv;
     moveit_msgs::MoveItErrorCodes code;
     // 临近点
     code = planMove(p1);
@@ -96,8 +94,8 @@ moveit_msgs::MoveItErrorCodes MovePickPlace::pick(geometry_msgs::Pose pose)
         {
             ROS_INFO("pick succeed");
             move_group.attachObject("object");
-            this->close_gripper_client.call(open_srv);
-            // CartesianPath(p1, false);
+            this->close_gripper_client.call(close_srv);
+            ros::WallDuration(1.0).sleep();
             planMove(p1);
         }
     }    
@@ -110,15 +108,9 @@ moveit_msgs::MoveItErrorCodes MovePickPlace::place(geometry_msgs::Pose pose)
     hirop_msgs::openGripper open_srv;
     moveit_msgs::MoveItErrorCodes code;
     target_finish.position.x *= 0.95;
-    // target_finish.position.y *= 0.85;
     target_finish.position.z *= 1;
-    // target_finish.orientation.x = 0;
-    // target_finish.orientation.y = 0.254;
-    // target_finish.orientation.z = 0;
-    // target_finish.orientation.w = 0.967;
     target_finish.orientation.w = 1.0;
     
-    // code = CartesianPath(target_finish, true);
     code = planMove(target_finish);
     if(code.val = moveit_msgs::MoveItErrorCodes::SUCCESS)
     {
@@ -128,6 +120,7 @@ moveit_msgs::MoveItErrorCodes MovePickPlace::place(geometry_msgs::Pose pose)
             ROS_INFO("place succeed");
             move_group.detachObject("object");
             this->open_gripper_client.call(open_srv);
+            ros::WallDuration(1.0).sleep();
             planMove(target_finish);
         }
     }
@@ -247,7 +240,8 @@ geometry_msgs::PoseStamped MovePickPlace::TransformListener(geometry_msgs::PoseS
             continue;
         }
     }
-    // base_detectPoseFromCamera[0].pose.position.x += 0.02;
+    base_detectPoseFromCamera[0].pose.position.x += 0.03;
+    base_detectPoseFromCamera[0].pose.position.y -= 0.02;
     base_detectPoseFromCamera[0].pose.position.z = 0.65;
     base_detectPoseFromCamera[0].pose.orientation.x = 0;
     base_detectPoseFromCamera[0].pose.orientation.y = 0;
@@ -280,8 +274,18 @@ void MovePickPlace::objectCallback(const hirop_msgs::ObjectArray::ConstPtr& msg)
     static int errorCnt = 0;
     cnt++;
     nh.setParam("/cnt", cnt);
+    bool add_collision = true;
     for(int j = 0; j < i; ++j)
     {   
+            //
+        nh.getParam("add_collision", add_collision);
+        if(add_collision == false)
+        {
+            system("rosservice call /pcl_clear");
+            system("rosservice call /clean_pcl");
+            system("rosservice call /look");
+            system("rosservice call /add_collision");
+        }
         geometry_msgs::PoseStamped toPickPoseStamp;
         moveit_msgs::MoveItErrorCodes code;
         toPickPoseStamp = TransformListener(msg->objects[j].pose);

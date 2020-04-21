@@ -24,6 +24,8 @@
 #include "hirop_msgs/openGripper.h"
 #include "hirop_msgs/closeGripper.h"
 
+#include <stdlib.h>
+
 class MovePickPlace
 {
 public:
