@@ -31,6 +31,7 @@ class MovePickPlace
 {
 public:
     MovePickPlace(ros::NodeHandle _n, moveit::planning_interface::MoveGroupInterface& group);
+    void spin();
     
 private:
     moveit_msgs::MoveItErrorCodes pick(geometry_msgs::Pose pose);
@@ -74,4 +75,6 @@ private:
     geometry_msgs::Pose place_pose2;
     geometry_msgs::Pose place_pose3;
     std::vector<geometry_msgs::Pose> place_poses;
+    //
+    std::vector<geometry_msgs::Pose> pick_poses;
 };

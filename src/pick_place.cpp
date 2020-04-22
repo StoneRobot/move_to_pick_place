@@ -1,6 +1,5 @@
 #include "pick_place/pick_place.h"
 
-
 MovePickPlace::MovePickPlace(ros::NodeHandle _n, moveit::planning_interface::MoveGroupInterface& group)
 :nh{_n},
 move_group{group}
@@ -366,6 +365,17 @@ void MovePickPlace::objectCallback(const hirop_msgs::ObjectArray::ConstPtr& msg)
         nh.setParam("over", true);
     }
 }
+
+// 待扩充的内容
+// void MovePickPlace::spin()
+// {
+//     move_group.allowReplanning(true);
+//     move_group.setPlanningTime(1);
+//     while(ros::ok())
+//     {
+
+//     }
+// }
 
 
 void MovePickPlace::subCallback(const std_msgs::Bool::ConstPtr& msg)
