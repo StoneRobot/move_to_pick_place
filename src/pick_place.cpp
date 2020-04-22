@@ -274,8 +274,11 @@ geometry_msgs::PoseStamped MovePickPlace::TransformListener(geometry_msgs::PoseS
             continue;
         }
     }
-    base_detectPoseFromCamera[0].pose.position.x += 0.03;
-    base_detectPoseFromCamera[0].pose.position.y -= 0.02;
+    float x, y;
+    nh.getParam("position_x_add", x);
+    nh.getParam("position_y_add", y);
+    base_detectPoseFromCamera[0].pose.position.x += x;
+    base_detectPoseFromCamera[0].pose.position.y += y;
     base_detectPoseFromCamera[0].pose.position.z = 0.65;
     base_detectPoseFromCamera[0].pose.orientation.x = 0;
     base_detectPoseFromCamera[0].pose.orientation.y = 0;
