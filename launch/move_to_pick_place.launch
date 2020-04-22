@@ -12,6 +12,10 @@
     <param name="velocity" type="bool" value="false" />
     <param name="is_use_detection" type="bool" value="true" />
     
+    <param name="position_x_add" type="double" value="0.0"  />
+    <param name="position_y_add" type="double" value="0.0"  />
+    <!--<param name="position_x_add" type="float" value="0.0"  />-->
+
     <node pkg="move_to_pick_place" type="move_to_pick_place" name="move_to_pick_place" output="screen">
         <param name="group" type="str" value="arm" />
     </node>
