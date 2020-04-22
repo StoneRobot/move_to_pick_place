@@ -227,4 +227,5 @@ add_executable(move_to_pick_place
 add_dependencies(move_to_pick_place ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(move_to_pick_place
   ${catkin_LIBRARIES}
+  -lyaml-cpp
 )

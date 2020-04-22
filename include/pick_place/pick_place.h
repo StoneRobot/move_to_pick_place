@@ -25,6 +25,7 @@
 #include "hirop_msgs/closeGripper.h"
 
 #include <stdlib.h>
+#include <yaml-cpp/yaml.h>
 
 class MovePickPlace
 {
@@ -43,6 +44,11 @@ private:
     void subCallback(const std_msgs::Bool::ConstPtr &msg);
     geometry_msgs::PoseStamped TransformListener(geometry_msgs::PoseStamped pose);
     moveit_msgs::MoveItErrorCodes planMove(geometry_msgs::Pose& pose);
+
+    void setPoses();
+    void setPose(const std::string& path, geometry_msgs::Pose& pose);
+    // friend void operator >> (const YAML::Node& doc, geometry_msgs::Pose& pose);
+    void assignment(const YAML::Node& doc, geometry_msgs::Pose& pose);
 
     ros::NodeHandle& nh;
     moveit::planning_interface::MoveGroupInterface& move_group;

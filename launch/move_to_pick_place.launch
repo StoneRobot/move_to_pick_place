@@ -1,7 +1,10 @@
 <?xml version="1.0"?>
 <launch>
+    <arg name="pose1" default="$(find move_to_pick_place)/cfg/place_pose1.yaml" />
+    <arg name="pose2" default="$(find move_to_pick_place)/cfg/place_pose2.yaml" />
+    <arg name="pose3" default="$(find move_to_pick_place)/cfg/place_pose3.yaml" />
     <!--"0"从桌子到货架,"1"从货架到桌子-->
-    <param name="intent" type="int" value="1" />
+    <param name="intent" type="int" value="1" /> 
     <!--测试使用的3个点位, 货架顶层,货架底层,桌子-->
     <param name="target" type="int" value="2" />
     <!--测试使用开关,及计数器-->
@@ -14,5 +17,8 @@
     
     <node pkg="move_to_pick_place" type="move_to_pick_place" name="move_to_pick_place" output="screen">
         <param name="group" type="str" value="arm" />
+        <param name="pose1" type="str" value="$(arg pose1)" />
+        <param name="pose2" type="str" value="$(arg pose2)" />
+        <param name="pose3" type="str" value="$(arg pose3)" />
     </node>
 </launch>

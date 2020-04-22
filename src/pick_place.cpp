@@ -1,5 +1,6 @@
 #include "pick_place/pick_place.h"
 
+
 MovePickPlace::MovePickPlace(ros::NodeHandle _n, moveit::planning_interface::MoveGroupInterface& group)
 :nh{_n},
 move_group{group}
@@ -28,30 +29,63 @@ move_group{group}
 
     setGenActuator();
 
-    tf2::Quaternion orien;
-    orien.setRPY(0, 0, -1.57);
+    // tf2::Quaternion orien;
+    // orien.setRPY(0, 0, -1.57);
 
-    place_pose1.position.x = 0.418;
-    place_pose1.position.y = -0.68;
-    place_pose1.position.z = 0.63;
-    place_pose1.orientation = tf2::toMsg(orien);
+    // place_pose1.position.x = 0.418;
+    // place_pose1.position.y = -0.68;
+    // place_pose1.position.z = 0.63;
+    // place_pose1.orientation = tf2::toMsg(orien);
 
-    place_pose2.position.x = 0.418;
-    place_pose2.position.y = -0.68;
-    place_pose2.position.z = 0.32;
-    place_pose2.orientation = tf2::toMsg(orien);
+    // place_pose2.position.x = 0.418;
+    // place_pose2.position.y = -0.68;
+    // place_pose2.position.z = 0.32;
+    // place_pose2.orientation = tf2::toMsg(orien);
 
-    place_pose3.position.x = 0.78;
-    place_pose3.position.y = 0;
-    place_pose3.position.z = 0.20;
-    orien.setRPY(0, 0, 6.28);
-    place_pose3.orientation = tf2::toMsg(orien);
+    // place_pose3.position.x = 0.78;
+    // place_pose3.position.y = 0;
+    // place_pose3.position.z = 0.20;
+    // orien.setRPY(0, 0, 6.28);
+    // place_pose3.orientation = tf2::toMsg(orien);
 
+    // place_poses.push_back(place_pose1);
+    // place_poses.push_back(place_pose2);
+    // place_poses.push_back(place_pose3);
+    setPoses();
+    ROS_INFO_STREAM(place_poses[0] << place_poses[1] << place_poses[2]);
+    ROS_INFO("init_over");
+}
+
+void MovePickPlace::setPoses()
+{
+    std::string path;
+    nh.getParam("/move_to_pick_place/pose1", path);
+    setPose(path, place_pose1);
+    nh.getParam("/move_to_pick_place/pose2", path);
+    setPose(path, place_pose2);
+    nh.getParam("/move_to_pick_place/pose3", path);
+    setPose(path, place_pose3);
     place_poses.push_back(place_pose1);
     place_poses.push_back(place_pose2);
     place_poses.push_back(place_pose3);
-    ROS_INFO_STREAM(place_poses[0] << place_poses[1] << place_poses[2]);
-    ROS_INFO("init_over");
+}
+
+void MovePickPlace::setPose(const std::string& path, geometry_msgs::Pose& pose)
+{
+    YAML::Node doc;
+    doc = YAML::LoadFile(path);
+    assignment(doc, pose);
+}
+
+void MovePickPlace::assignment(const YAML::Node& node, geometry_msgs::Pose& pose)
+{
+    pose.position.x = node["position"]["x"].as<float>();
+    pose.position.y = node["position"]["y"].as<float>();
+    pose.position.z = node["position"]["z"].as<float>();
+    pose.orientation.x = node["orientation"]["x"].as<float>();
+    pose.orientation.y = node["orientation"]["y"].as<float>();
+    pose.orientation.z = node["orientation"]["z"].as<float>();
+    pose.orientation.w = node["orientation"]["w"].as<float>();
 }
 
 moveit_msgs::MoveItErrorCodes MovePickPlace::planMove(geometry_msgs::Pose& pose)
