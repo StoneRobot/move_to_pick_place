@@ -25,31 +25,15 @@ move_group{group}
     move_group.setMaxVelocityScalingFactor(0.95);
     move_group.setGoalPositionTolerance(0.005);
     move_group.setGoalOrientationTolerance(0.01);
+    move_group.allowReplanning(true);
+    move_group.setPlanningTime(1);
+    move_group.setPoseReferenceFrame("base_link");
+    move_group.setWorkspace(-0.3, -1, 0, 1, 0.45, 1.25);
+    ROS_INFO_STREAM("planning Frame: " << move_group.getPlanningFrame());
 
     setGenActuator();
 
-    // tf2::Quaternion orien;
-    // orien.setRPY(0, 0, -1.57);
 
-    // place_pose1.position.x = 0.418;
-    // place_pose1.position.y = -0.68;
-    // place_pose1.position.z = 0.63;
-    // place_pose1.orientation = tf2::toMsg(orien);
-
-    // place_pose2.position.x = 0.418;
-    // place_pose2.position.y = -0.68;
-    // place_pose2.position.z = 0.32;
-    // place_pose2.orientation = tf2::toMsg(orien);
-
-    // place_pose3.position.x = 0.78;
-    // place_pose3.position.y = 0;
-    // place_pose3.position.z = 0.20;
-    // orien.setRPY(0, 0, 6.28);
-    // place_pose3.orientation = tf2::toMsg(orien);
-
-    // place_poses.push_back(place_pose1);
-    // place_poses.push_back(place_pose2);
-    // place_poses.push_back(place_pose3);
     setPoses();
     ROS_INFO_STREAM(place_poses[0] << place_poses[1] << place_poses[2]);
     ROS_INFO("init_over");
@@ -111,7 +95,7 @@ moveit_msgs::MoveItErrorCodes MovePickPlace::pick(geometry_msgs::Pose pose)
 {
     geometry_msgs::Pose p1;
     p1 = pose;
-    p1.position.y *= 0.8;
+    p1.position.y *= 0.75;
     hirop_msgs::openGripper open_srv;
     hirop_msgs::closeGripper close_srv;
     moveit_msgs::MoveItErrorCodes code;
@@ -278,7 +262,12 @@ geometry_msgs::PoseStamped MovePickPlace::TransformListener(geometry_msgs::PoseS
     nh.getParam("position_y_add", y);
     base_detectPoseFromCamera[0].pose.position.x += x;
     base_detectPoseFromCamera[0].pose.position.y += y;
-    base_detectPoseFromCamera[0].pose.position.z = 0.65;
+    int seat;
+    nh.getParam("/seat", seat);
+    if(seat == 0)
+        base_detectPoseFromCamera[0].pose.position.z = 0.65;
+    else if (seat == 1)
+        base_detectPoseFromCamera[0].pose.position.z = 0.38; 
     base_detectPoseFromCamera[0].pose.orientation.x = 0;
     base_detectPoseFromCamera[0].pose.orientation.y = 0;
     base_detectPoseFromCamera[0].pose.orientation.z = -0.706825;
@@ -299,21 +288,20 @@ geometry_msgs::PoseStamped MovePickPlace::TransformListener(geometry_msgs::PoseS
 
 void MovePickPlace::objectCallback(const hirop_msgs::ObjectArray::ConstPtr& msg)
 {
-    move_group.allowReplanning(true);
-    move_group.setPlanningTime(1);
+    nh.setParam("is_back_home", false);
+
     geometry_msgs::Pose pose;
     nh.getParam("intent", intent);
     nh.getParam("target", target);
     // ROS_INFO_STREAM("intent: "<< intent << "target: " << target);
-    int i = msg->objects.size();
     static int cnt = 0;
     static int errorCnt = 0;
     cnt++;
     nh.setParam("/cnt", cnt);
     bool add_collision = true;
+    int i = msg->objects.size();
     for(int j = 0; j < i; ++j)
     {   
-            //
         nh.getParam("add_collision", add_collision);
         if(add_collision == false)
         {
@@ -329,8 +317,8 @@ void MovePickPlace::objectCallback(const hirop_msgs::ObjectArray::ConstPtr& msg)
         rmObject();
         showObject(pose);
 
-        ROS_INFO("Press 'enter' to continue");
-        std::cin.ignore();
+        // ROS_INFO("Press 'enter' to continue");
+        // std::cin.ignore();
         if(intent == 0)
         {
             ROS_INFO_STREAM("intent:" << intent);
@@ -346,9 +334,6 @@ void MovePickPlace::objectCallback(const hirop_msgs::ObjectArray::ConstPtr& msg)
         code = pick(pose);
         if(code.val == moveit_msgs::MoveItErrorCodes::SUCCESS)
         {
-            // ros::WallDuration(1.0).sleep();
-            // move_group.setNamedTarget("home");
-            // move_group.move();
             code = place(place_poses[target]);
             if(code.val != moveit_msgs::MoveItErrorCodes::SUCCESS)
             {
@@ -387,12 +372,12 @@ void MovePickPlace::subCallback(const std_msgs::Bool::ConstPtr& msg)
 		if(msg->data)
 		{
 			ROS_INFO("slow down ...");
-			move_group.setMaxVelocityScalingFactor(0.1);
+			move_group.setMaxVelocityScalingFactor(0.01);
 		}
 		else
 		{
 			ROS_INFO("normal speed");
-			move_group.setMaxVelocityScalingFactor(0.8);
+			move_group.setMaxVelocityScalingFactor(0.95);
 		}
 	}
 }

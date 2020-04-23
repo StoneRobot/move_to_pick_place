@@ -17,6 +17,7 @@
     
     <param name="position_x_add" type="double" value="0.0"  />
     <param name="position_y_add" type="double" value="0.0"  />
+    <param name="seat" type="int" value="1" />
     <!--<param name="position_x_add" type="float" value="0.0"  />-->
 
     <node pkg="move_to_pick_place" type="move_to_pick_place" name="move_to_pick_place" output="screen">
