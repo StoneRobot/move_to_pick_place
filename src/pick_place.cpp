@@ -236,6 +236,9 @@ moveit_msgs::MoveItErrorCodes MovePickPlace::CartesianPath(geometry_msgs::Pose p
 geometry_msgs::PoseStamped MovePickPlace::TransformListener(geometry_msgs::PoseStamped pose)
 {
     // int ii = msg->objects.size();
+    pose.pose.position.x *= 0.01;
+    pose.pose.position.y *= 0.01;
+    pose.pose.position.z *= 0.01;
     geometry_msgs::PoseStamped returnPose;
     geometry_msgs::PoseStamped * detectPoseFromCamera = new geometry_msgs::PoseStamped[1];
     geometry_msgs::PoseStamped * base_detectPoseFromCamera = new geometry_msgs::PoseStamped[1];
@@ -262,6 +265,7 @@ geometry_msgs::PoseStamped MovePickPlace::TransformListener(geometry_msgs::PoseS
     nh.getParam("position_y_add", y);
     base_detectPoseFromCamera[0].pose.position.x += x;
     base_detectPoseFromCamera[0].pose.position.y += y;
+
     int seat;
     nh.getParam("/seat", seat);
     if(seat == 0)
@@ -345,6 +349,7 @@ void MovePickPlace::objectCallback(const hirop_msgs::ObjectArray::ConstPtr& msg)
             errorCnt++;
         }
         nh.setParam("error_cnt", errorCnt);
+        move_group.setWorkspace(-0.3, -0.4, 0, 1, 0.45, 1.25);
         move_group.setNamedTarget("home");
         move_group.move();
         nh.setParam("over", true);
@@ -372,7 +377,8 @@ void MovePickPlace::subCallback(const std_msgs::Bool::ConstPtr& msg)
 		if(msg->data)
 		{
 			ROS_INFO("slow down ...");
-			move_group.setMaxVelocityScalingFactor(0.01);
+			move_group.setMaxVelocityScalingFactor(0.1);
+            move_group.setMaxAccelerationScalingFactor(0.1);
 		}
 		else
 		{
