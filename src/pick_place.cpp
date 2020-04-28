@@ -95,7 +95,7 @@ moveit_msgs::MoveItErrorCodes MovePickPlace::pick(geometry_msgs::Pose pose)
 {
     geometry_msgs::Pose p1;
     p1 = pose;
-    p1.position.y *= 0.75;
+    p1.position.y *= 0.85;
     hirop_msgs::openGripper open_srv;
     hirop_msgs::closeGripper close_srv;
     moveit_msgs::MoveItErrorCodes code;
