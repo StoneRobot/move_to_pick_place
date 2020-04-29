@@ -95,7 +95,7 @@ moveit_msgs::MoveItErrorCodes MovePickPlace::pick(geometry_msgs::Pose pose)
 {
     geometry_msgs::Pose p1;
     p1 = pose;
-    p1.position.y *= 0.85;
+    p1.position.y *= 0.95;
     hirop_msgs::openGripper open_srv;
     hirop_msgs::closeGripper close_srv;
     moveit_msgs::MoveItErrorCodes code;
@@ -290,6 +290,7 @@ geometry_msgs::PoseStamped MovePickPlace::TransformListener(geometry_msgs::PoseS
     return returnPose;
 }
 
+
 void MovePickPlace::objectCallback(const hirop_msgs::ObjectArray::ConstPtr& msg)
 {
     nh.setParam("is_back_home", false);
@@ -316,8 +317,19 @@ void MovePickPlace::objectCallback(const hirop_msgs::ObjectArray::ConstPtr& msg)
         }
         geometry_msgs::PoseStamped toPickPoseStamp;
         moveit_msgs::MoveItErrorCodes code;
-        toPickPoseStamp = TransformListener(msg->objects[j].pose);
-        pose = toPickPoseStamp.pose;
+
+        bool isUseDetection;
+        nh.getParam("is_use_detection", isUseDetection);
+        // 调试使用
+        if(isUseDetection)
+        {
+            toPickPoseStamp = TransformListener(msg->objects[j].pose);
+            pose = toPickPoseStamp.pose;
+        }
+        else
+        {
+            pose = msg->objects[j].pose.pose;
+        }
         rmObject();
         showObject(pose);
 
@@ -355,18 +367,6 @@ void MovePickPlace::objectCallback(const hirop_msgs::ObjectArray::ConstPtr& msg)
         nh.setParam("over", true);
     }
 }
-
-// 待扩充的内容
-// void MovePickPlace::spin()
-// {
-//     move_group.allowReplanning(true);
-//     move_group.setPlanningTime(1);
-//     while(ros::ok())
-//     {
-
-//     }
-// }
-
 
 void MovePickPlace::subCallback(const std_msgs::Bool::ConstPtr& msg)
 {
