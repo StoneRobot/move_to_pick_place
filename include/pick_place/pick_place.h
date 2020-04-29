@@ -51,6 +51,9 @@ private:
     // friend void operator >> (const YAML::Node& doc, geometry_msgs::Pose& pose);
     void assignment(const YAML::Node& doc, geometry_msgs::Pose& pose);
 
+    void setConstraints();
+    void clearConstraints();
+
     ros::NodeHandle& nh;
     moveit::planning_interface::MoveGroupInterface& move_group;
     moveit::planning_interface::MoveGroupInterface::Plan my_plan;
