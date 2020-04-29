@@ -94,19 +94,31 @@ moveit_msgs::MoveItErrorCodes MovePickPlace::planMove(geometry_msgs::Pose& pose)
 moveit_msgs::MoveItErrorCodes MovePickPlace::pick(geometry_msgs::Pose pose)
 {
     geometry_msgs::Pose p1;
+    geometry_msgs::Pose p2;
     p1 = pose;
-    p1.position.y *= 0.75;
+    p2 = pose;
+    if(intent == 1)
+    {
+        p1.position.y *= 0.80; 
+        p2.position.y *= 0.75;
+    }
+    else if(intent == 0)
+    {
+        p1.position.x *= 0.95;
+        p2.position.x *= 0.80;
+    }
     hirop_msgs::openGripper open_srv;
     hirop_msgs::closeGripper close_srv;
     moveit_msgs::MoveItErrorCodes code;
     // 临近点
     code = planMove(p1);
-    this->setConstraints();
     ROS_INFO_STREAM(code.val);
     if(code.val == moveit_msgs::MoveItErrorCodes::SUCCESS)
     {
         this->open_gripper_client.call(open_srv);
+        this->setConstraints();
         code = planMove(pose);
+        this->clearConstraints();
         ROS_INFO_STREAM(code.val);
         if(code.val == moveit_msgs::MoveItErrorCodes::SUCCESS)
         {
@@ -114,10 +126,9 @@ moveit_msgs::MoveItErrorCodes MovePickPlace::pick(geometry_msgs::Pose pose)
             move_group.attachObject("object");
             this->close_gripper_client.call(close_srv);
             ros::WallDuration(1.0).sleep();
-            planMove(p1);
+            planMove(p2);
         }
     }    
-    this->clearConstraints();
     return code;
 }
 
@@ -126,15 +137,23 @@ moveit_msgs::MoveItErrorCodes MovePickPlace::place(geometry_msgs::Pose pose)
     geometry_msgs::Pose target_finish = pose;
     hirop_msgs::openGripper open_srv;
     moveit_msgs::MoveItErrorCodes code;
-    target_finish.position.x *= 0.95;
-    target_finish.position.z *= 1;
-    target_finish.orientation.w = 1.0;
+    if(intent == 1)
+    {
+        target_finish.position.x *= 0.95;
+        target_finish.position.z *= 1;
+        target_finish.orientation.w = 1.0;
+    }
+    else if(intent == 0)
+    {
+        target_finish.position.y *= 0.80;
+    }
     
     code = planMove(target_finish);
-    setConstraints();
     if(code.val = moveit_msgs::MoveItErrorCodes::SUCCESS)
     {
+        // setConstraints();
         code = planMove(pose);
+        // clearConstraints();
         if(code.val == moveit_msgs::MoveItErrorCodes::SUCCESS)
         {
             ROS_INFO("place succeed");
@@ -144,7 +163,6 @@ moveit_msgs::MoveItErrorCodes MovePickPlace::place(geometry_msgs::Pose pose)
             planMove(target_finish);
         }
     }
-    clearConstraints();
     return code;
 }
 
@@ -156,32 +174,16 @@ void MovePickPlace::setConstraints()
 
     ocm.orientation = this->move_group.getCurrentPose().pose.orientation;
     // x轴绝对公差
-    ocm.absolute_x_axis_tolerance = 0.1;
-    ocm.absolute_y_axis_tolerance = 0.1;
-    ocm.absolute_z_axis_tolerance = 0.1;
+    ocm.absolute_x_axis_tolerance = 0.2;
+    ocm.absolute_y_axis_tolerance = 0.2;
+    ocm.absolute_z_axis_tolerance = 0.2;
     ocm.weight = 1.0;
     // 现在，将其设置为组的路径约束。
-    moveit_msgs::Constraints test_constraints;
-    test_constraints.orientation_constraints.push_back(ocm);
-    move_group.setPathConstraints(test_constraints);
-    // 我们将重新使用我们已有的旧目标，并计划实现。
-    // 请注意，这仅在当前状态已满足路径约束时才起作用。
-    // 因此，我们需要将开始状态设置为一个新的姿势。
-    // robot_state::RobotState start_state(*move_group.getCurrentState());
-    // 设置路径约束开始位置
-    // geometry_msgs::Pose start_pose2;
-    // start_pose2.orientation.w = 1.0;
-    // start_pose2.position.x = 0.55;
-    // start_pose2.position.y = -0.05;
-    // start_pose2.position.z = 0.8;
-    // start_state.setFromIK(joint_model_group, start_pose2);
-    // 将当前的姿态设为开始姿态
-	    // move_group.setStartState(start_state);
-    // 现在，我们将从我们刚刚创建的新开始状态中规划到较早的姿势目标。
-    // move_group.setPoseTarget(target_pose1);
-    // 使用约束进行规划可能很慢，因为每个样本都必须调用反向运动学解算器。
-    // 让我们将计划时间从默认的 5 秒增加到确保规划器有足够的时间成功。
-    move_group.setPlanningTime(10.0);
+    moveit_msgs::Constraints constraints;
+    constraints.orientation_constraints.push_back(ocm);
+    move_group.setPathConstraints(constraints);
+
+    move_group.setPlanningTime(2);
 }
 
 void MovePickPlace::clearConstraints()
