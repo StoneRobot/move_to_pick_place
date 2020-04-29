@@ -28,7 +28,7 @@ move_group{group}
     move_group.allowReplanning(true);
     move_group.setPlanningTime(1);
     move_group.setPoseReferenceFrame("base_link");
-    move_group.setWorkspace(-0.3, -1, 0, 1, 0.45, 1.25);
+    move_group.setWorkspace(-0.3, -1, 0, 1, 0.45, 0.95);
     ROS_INFO_STREAM("planning Frame: " << move_group.getPlanningFrame());
 
     setGenActuator();
@@ -349,7 +349,7 @@ void MovePickPlace::objectCallback(const hirop_msgs::ObjectArray::ConstPtr& msg)
             errorCnt++;
         }
         nh.setParam("error_cnt", errorCnt);
-        move_group.setWorkspace(-0.3, -0.4, 0, 1, 0.45, 1.25);
+        // move_group.setWorkspace(-0.3, -0.4, 0, 1, 0.45, 1.25);
         move_group.setNamedTarget("home");
         move_group.move();
         nh.setParam("over", true);
